@@ -3,83 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Music & Tayar Portal</title>
+    <title>ကျောင်းသားပညာပေး Portal</title>
     <style>
-        :root { --primary: #6a11cb; --accent: #3498db; --danger: #e74c3c; }
-        body { font-family: 'Pyidaungsu', sans-serif; background: #f0f2f5; margin: 0; display: flex; min-height: 100vh; }
-        .sidebar { width: 200px; background: #2c3e50; color: white; padding: 20px; position: fixed; height: 100vh; }
-        .main { margin-left: 240px; flex: 1; padding: 20px; }
-        .post-card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; }
-        .del-btn { position: absolute; top: 10px; right: 10px; cursor: pointer; background: none; border: none; font-size: 18px; color: #ccc; }
-        .del-btn:hover { color: var(--danger); }
-        audio { width: 100%; margin-top: 10px; }
-        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #2ecc71; color: white; border-radius: 50%; font-size: 30px; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        #upload-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; z-index: 1000; box-shadow: 0 0 20px rgba(0,0,0,0.5); width: 90%; max-width: 400px; }
-        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        :root {
+            --primary: #6a11cb;
+            --accent: #3498db;
+            --danger: #ff4757;
+        }
+
+        body { font-family: 'Pyidaungsu', sans-serif; display: flex; margin: 0; background: #f0f2f5; min-height: 100vh; flex-direction: column; }
+        
+        /* Sidebar Styles for Desktop, Top Bar for Mobile */
+        .sidebar { width: 100%; background: #2c3e50; color: white; padding: 10px; position: sticky; top: 0; z-index: 100; }
+        @media (min-width: 768px) {
+            body { flex-direction: row; }
+            .sidebar { width: 250px; height: 100vh; }
+        }
+
+        .menu-item { padding: 12px; margin: 5px; border-radius: 8px; cursor: pointer; transition: 0.3s; display: inline-block; }
+        @media (min-width: 768px) { .menu-item { display: block; } }
+        .menu-item:hover { background: var(--accent); }
+        .menu-active { background: var(--accent); font-weight: bold; }
+
+        .main { flex: 1; padding: 20px; }
+        #content-display { max-width: 800px; margin: 0 auto; }
+        
+        .post-card { background: white; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); overflow: hidden; position: relative; border-left: 5px solid var(--primary); }
+        
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #2ecc71; color: white; border-radius: 50%; font-size: 30px; border: none; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 1001; }
+        
+        #upload-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 15px; z-index: 1000; width: 90%; max-width: 450px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 999; }
+        
+        select, input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-submit { background: #2ecc71; color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
+        audio { width: 100%; margin-top: 10px; border-radius: 5px; background: #f1f3f4; }
+        .delete-btn { color: var(--danger); border: none; background: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
+
     <div class="sidebar">
-        <h3>Menu</h3>
-        <p>🏠 အားလုံး</p>
+        <h2>Menu</h2>
+        <div class="menu-item menu-active" onclick="filterContent('all', this)">🏠 အားလုံး</div>
+        <div class="menu-item" onclick="filterContent('audio', this)">🎵 သီချင်းနှင့် တရား</div>
+        <div class="menu-item" onclick="filterContent('study', this)">📘 စာကျက်နည်းများ</div>
     </div>
+
     <div class="main">
-        <h1>🎵 ကျွန်ုပ်၏ တရားနှင့် သီချင်းများ</h1>
-        <div id="display-area">Loading...</div>
+        <h1 id="category-title" style="text-align: center;">🏠 အားလုံး</h1>
+        <div id="content-display">Loading...</div>
     </div>
-    <button class="fab" onclick="document.getElementById('upload-modal').style.display='block'">+</button>
+
+    <button class="fab" onclick="showModal()">+</button>
+    <div id="overlay" onclick="hideModal()"></div>
     <div id="upload-modal">
-        <h3>အသစ်ထည့်ရန်</h3>
-        <input type="text" id="title" placeholder="ခေါင်းစဉ်">
-        <input type="text" id="author" placeholder="ဆရာတော်/အဆိုတော်">
-        <input type="text" id="url" placeholder="GitHub Link (ဥပမာ- https://.../tayar2.mp3)">
-        <button onclick="savePost()" style="width:100%; padding:10px; background:#2ecc71; color:white; border:none; border-radius:5px;">တင်မည်</button>
-        <button onclick="document.getElementById('upload-modal').style.display='none'" style="width:100%; margin-top:5px; background:#eee; border:none; padding:10px;">ပိတ်ပါ</button>
+        <h3>အကြောင်းအရာသစ်တင်ရန်</h3>
+        <select id="postCategory">
+            <option value="audio">🎵 သီချင်းနှင့် တရား</option>
+            <option value="news">🌍 သတင်း</option>
+            <option value="study">📘 ပညာရေး</option>
+        </select>
+        <input type="text" id="postTitle" placeholder="ခေါင်းစဉ်">
+        <textarea id="postContent" rows="3" placeholder="စာသားအနည်းငယ်ရေးပါ"></textarea>
+        <input type="text" id="audioUrlInput" placeholder="GitHub Link သို့မဟုတ် Drive Link">
+        <button class="btn-submit" onclick="saveToFirebase()">တင်မည် (Post)</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, onSnapshot, where, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // ပြင်ဆင်ထားသော Config (apiKey ပြန်ထည့်ထားသည်)
         const firebaseConfig = {
             apiKey: "AIzaSyC4c2aE6LOMjf00e_SPIB7snz8MbYy37_g",
-            authDomain: "mymusicapp-380.firebaseapp.com",
-            projectId: "mymusicapp-380",
-            storageBucket: "mymusicapp-380.firebasestorage.app",
-            messagingSenderId: "362148026754",
-            appId: "1:362148026754:web:e5b21177553bcf4444979b"
+            authDomain: "cherry-project-08.firebaseapp.com",
+            projectId: "cherry-project-08",
+            storageBucket: "cherry-project-08.appspot.com",
+            appId: "1:600023073662:web:8c60662b02f7dbac13692f"
         };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        let unsubscribe = null;
 
-        window.savePost = async () => {
-            const title = document.getElementById('title').value;
-            const author = document.getElementById('author').value;
-            const url = document.getElementById('url').value;
-            if(title && url) {
-                await addDoc(collection(db, "tayar_list"), { title, author, audioUrl: url, date: Date.now() });
-                document.getElementById('upload-modal').style.display='none';
+        window.showModal = () => { document.getElementById('upload-modal').style.display='block'; document.getElementById('overlay').style.display='block'; }
+        window.hideModal = () => { document.getElementById('upload-modal').style.display='none'; document.getElementById('overlay').style.display='none'; }
+
+        window.saveToFirebase = async () => {
+            const cat = document.getElementById('postCategory').value;
+            const title = document.getElementById('postTitle').value;
+            const text = document.getElementById('postContent').value;
+            let link = document.getElementById('audioUrlInput').value;
+
+            if (link.includes("drive.google.com")) {
+                const match = link.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (match) link = `https://drive.google.com/uc?export=media&id=${match[1]}`;
+            }
+
+            if(title) {
+                try {
+                    await addDoc(collection(db, "portal_content"), {
+                        category: cat, title, content: text, audioUrl: link, date: Timestamp.now()
+                    });
+                    hideModal();
+                    document.getElementById('postTitle').value = "";
+                } catch(e) { alert("Error: " + e.message); }
             }
         };
 
-        window.deletePost = async (id) => { if(confirm("ဖျက်မှာလား?")) await deleteDoc(doc(db, "tayar_list", id)); };
+        window.loadContent = (filterCategory = 'all') => {
+            if (unsubscribe) unsubscribe();
+            let q = query(collection(db, "portal_content"), orderBy("date", "desc"));
+            if (filterCategory !== 'all') q = query(collection(db, "portal_content"), where("category", "==", filterCategory), orderBy("date", "desc"));
 
-        const q = query(collection(db, "tayar_list"), orderBy("date", "desc"));
-        onSnapshot(q, (snap) => {
-            let html = "";
-            snap.forEach(d => {
-                const data = d.data();
-                html += `<div class="post-card">
-                    <button class="del-btn" onclick="deletePost('${d.id}')">🗑️</button>
-                    <h3>${data.title}</h3>
-                    <p>👤 ${data.author}</p>
-                    <audio controls src="${data.audioUrl}"></audio>
-                </div>`;
-            });
-            document.getElementById('display-area').innerHTML = html || "ဘာမှမရှိသေးပါ။ '+' ကိုနှိပ်ပြီး ထည့်ပါ။";
-        });
-    </script>
-</body>
-</html>
-
-
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const display = document.getElementById('content-display');
+                display.innerHTML = "";
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    display.innerHTML += `
+                        <div class="post-card">
+                            <div style
+        
